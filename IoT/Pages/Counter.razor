@@ -1,0 +1,27 @@
+﻿@page "/"
+
+<h1>IoT Foto</h1>
+<img src="@newFile" class="shadow rounded" alt="Ждем картинку...">
+@if (newFile != "css/img/nb-iot.jpg")
+{
+    <p>New foto: @newFile</p>
+}
+
+@code {
+    private string newFile = "css/img/nb-iot.jpg";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Startup.udpService.onNewImage += NewFile;
+        await Task.Delay(1);
+    }
+    private void NewFile(Guid KeyAPI, string ImagePath)
+    {
+        this.InvokeAsync(() =>
+        {
+            newFile = ImagePath.Split("wwwroot")[1].Replace('\\', '/');
+            StateHasChanged();
+
+        });
+    }
+}
