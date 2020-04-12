@@ -2,6 +2,13 @@
 
 <h1>IoT Foto</h1>
 <img src="@newFile" class="shadow rounded" alt="Ждем картинку...">
+@if ((loadProgress != 0)&&(loadProgress != 100) )
+{
+    <div class="progress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="@loadProgress" aria-valuemin="0" aria-valuemax="100" style="width: @loadProgress%">@loadProgress%</div>
+    </div>
+}
+
 @if (newFile != "css/img/nb-iot.jpg")
 {
     <p>New foto: @newFile</p>
@@ -9,10 +16,13 @@
 
 @code {
     private string newFile = "css/img/nb-iot.jpg";
+    private int loadProgress = 0;
 
     protected override async Task OnInitializedAsync()
     {
         Startup.udpService.onNewImage += NewFile;
+        Startup.udpService.onLoadProgress += onLoadProgress;
+
         await Task.Delay(1);
     }
     private void NewFile(Guid KeyAPI, string ImagePath)
@@ -22,6 +32,14 @@
             newFile = ImagePath.Split("wwwroot")[1].Replace('\\', '/');
             StateHasChanged();
 
+        });
+    }
+    private void onLoadProgress(Guid KeyAPI, int Progress, int All)
+    {
+        this.InvokeAsync(() =>
+        {
+            loadProgress = 100 * Progress / All;            
+            StateHasChanged();
         });
     }
 }

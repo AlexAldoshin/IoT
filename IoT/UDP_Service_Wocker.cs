@@ -63,6 +63,8 @@ namespace IoT
         public delegate void MethodContainer(Guid KeyAPI, string ImagePath);
         public event MethodContainer onNewImage;
 
+        public delegate void ProgressContainer(Guid KeyAPI, int Progress, int All);
+        public event ProgressContainer onLoadProgress;
 
         private async Task ToUserAsync(IPEndPoint IpEP, byte[] data)
         {
@@ -79,6 +81,7 @@ namespace IoT
                     AllUsersData[KeyAPI] = new Users.DataFormats.Image();
                 }
                 AllUsersData[KeyAPI].AddPixelsRLE(row, maxrow, BinData);
+                onLoadProgress?.Invoke(KeyAPI, row, maxrow);
                 if (AllUsersData[KeyAPI].imageLoadOk)
                 {
                     Users.DataFormats.Image imageOut;
@@ -98,7 +101,7 @@ namespace IoT
                         {
                             dirInfo.Create();
                         }
-                        var filename = DateTime.Now.ToString("yyyy_MM_dd_mm_ss.ffff") + ".png";
+                        var filename = DateTime.Now.ToString("yyyy_MM_dd_hh_mm_ss.ffff") + ".png";
                         path = path + "\\" + filename;
                         // создаем объект BinaryWriter
                         using (BinaryWriter writer = new BinaryWriter(File.Open(path, FileMode.Create)))
@@ -106,11 +109,7 @@ namespace IoT
                             writer.Write(png);
                         }
                         _logger.LogInformation("Create new file {0} at: {time}", filename, DateTimeOffset.Now);
-
-                        if (onNewImage != null)
-                        {
-                            onNewImage(KeyAPI, path);
-                        }
+                        onNewImage?.Invoke(KeyAPI, path);
                     }
                     catch (Exception e)
                     {

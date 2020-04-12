@@ -20,6 +20,11 @@ namespace IoT.Users.DataFormats
 
         public void AddPixelsRLE(int row, int maxRow, byte[] pixelData)
         {
+            if (row == maxRow)
+            {
+                imageLoadOk = true;
+            }
+
             row = Math.Min(row, 768);
             maxRow = Math.Min(maxRow, 768);
             int px = 0;
@@ -42,11 +47,7 @@ namespace IoT.Users.DataFormats
             }
             ImageBin[row] = lb.ToArray();
             Width = Math.Max(Width, px);
-            Height = Math.Max(Height, maxRow);
-            if (row == maxRow)
-            {
-                imageLoadOk = true;
-            }
+            Height = Math.Max(Height, maxRow);           
         }
         public byte[] GetPNG()
         {
