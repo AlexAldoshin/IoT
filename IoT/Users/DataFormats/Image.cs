@@ -47,7 +47,7 @@ namespace IoT.Users.DataFormats
             }
             ImageBin[row] = lb.ToArray();
             Width = Math.Max(Width, px);
-            Height = Math.Max(Height, maxRow);           
+            Height = Math.Max(Height, maxRow);
         }
         public byte[] GetPNG()
         {

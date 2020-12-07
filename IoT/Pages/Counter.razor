@@ -1,8 +1,77 @@
 ﻿@page "/"
+@using System.IO
+@inject IJSRuntime js
 
-<h1>IoT Foto</h1>
-<img src="@newFile" class="shadow rounded" alt="Ждем картинку...">
-@if ((loadProgress != 0)&&(loadProgress != 100) )
+<h1>Контроль изображений</h1>
+<div class="row m-1">
+    <div class="col">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="basic-addon1">  <span class="oi oi-key"></span> </span>
+            </div>
+            <input type="text" class="form-control" placeholder="User Key API" aria-label="User Key API" aria-describedby="basic-addon1" @bind="Sel_Key_API">
+            <div class="input-group-append">
+                <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <div class="dropdown-menu">
+                    @if (All_Key_API != null)
+                    {
+                        @foreach (var Key_API_el in All_Key_API)
+                        {
+                            <a class="dropdown-item" href="#" @onclick="@(e => SelKeyAPI(e, Key_API_el))">@Key_API_el</a>
+                        }
+                    }
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#" @onclick="KeyAPIRefresh">Обновить</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row m-1">
+    <div class="col">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="basic-addon2">  <span class="oi oi-phone"></span> </span>
+            </div>
+            <input type="text" class="form-control" placeholder="IMEI устройства" aria-label="IMEI устройства" aria-describedby="basic-addon2" @bind="Sel_IMEI">
+            <div class="input-group-append">
+                <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <div class="dropdown-menu">
+                    @if (All_IMEI != null)
+                    {
+                        @foreach (var All_IMEI_el in All_IMEI)
+                        {
+                            <a class="dropdown-item" href="#" @onclick="@(e => SelIMEI(e, All_IMEI_el))">@All_IMEI_el</a>
+                        }
+                    }
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#" @onclick="All_IMEI_Refresh">Обновить</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*<img src="@newFile" class="shadow rounded" alt="Ждем картинку...">*@
+<div class="row m-1">
+    <div class="col">
+        <h4>Получаемое фото</h4>
+        <canvas id="map" width="320" height="240"></canvas>
+        <p>
+            <button type="button" class="btn btn-secondary" @onclick="Save_region">Сохранить область</button>
+        </p>
+    </div>
+    <div class="col">
+        <h4>Область показаний</h4>
+        <canvas id="map_sel" width="320" height="240"></canvas>
+    </div>
+</div>
+<div id="server"></div>
+
+@if ((loadProgress != 0) && (loadProgress != 100))
 {
     <div class="progress">
         <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="@loadProgress" aria-valuemin="0" aria-valuemax="100" style="width: @loadProgress%">@loadProgress%</div>
@@ -17,19 +86,100 @@
 @code {
     private string newFile = "css/img/nb-iot.jpg";
     private int loadProgress = 0;
+    private List<string> All_Key_API, All_IMEI;
+    private string Sel_Key_API, Sel_IMEI;
 
+    private async Task Save_region()
+    {
+        var text = await js.InvokeAsync<string>("get_region");
+        var path = Path.Combine(Environment.CurrentDirectory, "wwwroot", "UsersData", Sel_Key_API, Sel_IMEI);
+        var dirInfo = new DirectoryInfo(path);
+        if (dirInfo.Exists)
+        {
+            var filename = Path.Combine(path, "region.ini");
+            File.WriteAllText(filename, text);
+        }
+
+    }
+
+    private void SelKeyAPI(MouseEventArgs e, string Key_API_el)
+    {
+        Sel_Key_API = Key_API_el;
+        All_IMEI_Refresh();
+    }
+
+    private void SelIMEI(MouseEventArgs e, string IMEI_el)
+    {
+        Sel_IMEI = IMEI_el;
+        All_Foto_Refresh();
+    }
+    private void KeyAPIRefresh()
+    {
+        var path = Path.Combine(Environment.CurrentDirectory, "wwwroot", "UsersData");
+
+        var dirInfo = new DirectoryInfo(path);
+        if (dirInfo.Exists)
+        {
+            All_Key_API = Directory.GetDirectories(path).Select(p => (new DirectoryInfo(p)).Name).ToList();
+        }
+    }
+    private void All_IMEI_Refresh()
+    {
+        var path = Path.Combine(Environment.CurrentDirectory, "wwwroot", "UsersData", Sel_Key_API);
+
+        var dirInfo = new DirectoryInfo(path);
+        if (dirInfo.Exists)
+        {
+            All_IMEI = Directory.GetDirectories(path).Select(p => (new DirectoryInfo(p)).Name).ToList();
+        }
+    }
+    private void All_Foto_Refresh()
+    {
+        var path = Path.Combine(Environment.CurrentDirectory, "wwwroot", "UsersData", Sel_Key_API, Sel_IMEI);
+
+        var dirInfo = new DirectoryInfo(path);
+        if (dirInfo.Exists)
+        {
+            var last_img_file = dirInfo.GetFileSystemInfos().Where(fe=>fe.Extension==".jpg").OrderByDescending(fi => fi.CreationTime).First();
+            newFile = Path.Combine("UsersData", Sel_Key_API, Sel_IMEI, last_img_file.Name);
+            var text = "";
+            var filename_region = Path.Combine(path, "region.ini");
+            if (File.Exists(filename_region))
+            {
+                text = File.ReadAllText(filename_region);
+            }
+            else
+            {
+                text = "0,0,320,240";
+                File.WriteAllText(filename_region, text);
+            }
+
+            js.InvokeVoidAsync("load_image", newFile, text);
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         Startup.udpService.onNewImage += NewFile;
         Startup.udpService.onLoadProgress += onLoadProgress;
 
+        KeyAPIRefresh();
+
+
         await Task.Delay(1);
+    }
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await js.InvokeVoidAsync("start_map_events");
+        }
     }
     private void NewFile(Guid KeyAPI, string ImagePath)
     {
         this.InvokeAsync(() =>
         {
             newFile = ImagePath.Split("wwwroot")[1].Replace('\\', '/');
+            js.InvokeVoidAsync("load_image", newFile);
             StateHasChanged();
 
         });
@@ -38,7 +188,14 @@
     {
         this.InvokeAsync(() =>
         {
-            loadProgress = 100 * Progress / All;            
+            try
+            {
+                loadProgress = 100 * Progress / All;
+            }
+            catch (Exception)
+            {
+
+            }
             StateHasChanged();
         });
     }

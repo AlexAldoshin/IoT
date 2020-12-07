@@ -27,14 +27,14 @@ namespace IoT
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
-            services.AddSingleton<WeatherForecastService>();            
-            services.AddHostedService<UDP_Service_Wocker>();                        
+            services.AddSingleton<WeatherForecastService>();
+            services.AddHostedService<UDP_Service_Wocker>();            
         }
 
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {              
+        {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -52,7 +52,8 @@ namespace IoT
             {
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
-            });
+            });           
+
         }
     }
 }
