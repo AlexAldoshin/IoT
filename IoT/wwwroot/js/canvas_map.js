@@ -7,7 +7,6 @@ var rect;
 
 function start_map_events() {
     load_image('css/img/nb-iot.jpg', '');
-
     function m_start(e) {
         bound = c[0].getBoundingClientRect();
         if (e.type == 'touchstart') {
@@ -18,8 +17,6 @@ function start_map_events() {
             x = (e.clientX - bound.left).toFixed(0) * 1;
             y = (e.clientY - bound.top).toFixed(0) * 1;
         }
-
-
     }
     function m_end(e) {
         bound = c[0].getBoundingClientRect();
@@ -30,10 +27,7 @@ function start_map_events() {
         else {
             dx = (e.clientX - bound.left).toFixed(0) - x;
             dy = (e.clientY - bound.top).toFixed(0) - y;
-        }
-
-
-        
+        }        
         if (dx < 0) {
             x = x + dx;
             dx = -dx;
@@ -52,7 +46,6 @@ function start_map_events() {
         ctx2.drawImage(img, rect[0], rect[1], dx, dy, 0, 0, dx, dy);
         ctx2.strokeRect(0, 0, dx, dy);
     }
-
     c[0].addEventListener("touchstart", m_start, false);
     c[0].addEventListener("touchend", m_end, false);
     c[0].addEventListener("mousedown", m_start, false);

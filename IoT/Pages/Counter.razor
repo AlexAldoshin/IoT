@@ -55,7 +55,6 @@
         </div>
     </div>
 </div>
-@*<img src="@newFile" class="shadow rounded" alt="Ждем картинку...">*@
 <div class="row m-1">
     <div class="col">
         <h4>Получаемое фото</h4>
@@ -140,7 +139,7 @@
         var dirInfo = new DirectoryInfo(path);
         if (dirInfo.Exists)
         {
-            var last_img_file = dirInfo.GetFileSystemInfos().Where(fe=>fe.Extension==".jpg").OrderByDescending(fi => fi.CreationTime).First();
+            var last_img_file = dirInfo.GetFileSystemInfos().Where(fe => fe.Extension == ".jpg").OrderByDescending(fi => fi.CreationTime).First();
             newFile = Path.Combine("UsersData", Sel_Key_API, Sel_IMEI, last_img_file.Name);
             var text = "";
             var filename_region = Path.Combine(path, "region.ini");
