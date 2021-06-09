@@ -58,10 +58,10 @@ namespace IoT
             }
         }
 
-        public delegate void MethodContainer(Guid KeyAPI, string ImagePath);
+        public delegate void MethodContainer(Guid KeyAPI, ulong IMEI, string ImagePath);
         public event MethodContainer onNewImage;
 
-        public delegate void ProgressContainer(Guid KeyAPI, int Progress, int All);
+        public delegate void ProgressContainer(Guid KeyAPI, ulong IMEI, int Progress, int All);
         public event ProgressContainer onLoadProgress;
 
         private async Task ToUserAsync(IPEndPoint IpEP, byte[] data)
@@ -106,7 +106,7 @@ namespace IoT
                     var maxrow = ParsePacket.Packet.LinesCount;
 
                     AllUsersData[UserID].AddPartJPG(row, maxrow, BinData);
-                    onLoadProgress?.Invoke(KeyAPI, row, maxrow);
+                    onLoadProgress?.Invoke(KeyAPI, IMEI, row, maxrow);
                     if (AllUsersData[UserID].imageLoadOk)
                     {
                         Users.DataFormats.ImageJPG imageOut;
@@ -139,7 +139,7 @@ namespace IoT
                                 writer.Write(jpg);
                             }
                             _logger.LogInformation("Create new file {0} at: {time}", filename, DateTimeOffset.Now);
-                            onNewImage?.Invoke(KeyAPI, path);
+                            onNewImage?.Invoke(KeyAPI, IMEI, path);
                             //Зальем данные в Influx
                             Task task = Task.Run(async () =>
                             {

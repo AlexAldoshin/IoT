@@ -1,5 +1,9 @@
 ﻿@page "/"
 @using System.IO
+@using System.Drawing
+@using System.Net.Sockets
+@using System.Drawing.Imaging
+
 @inject IJSRuntime js
 
 <h1>Контроль изображений</h1>
@@ -60,12 +64,13 @@
         <h4>Получаемое фото</h4>
         <canvas id="map" width="320" height="240"></canvas>
         <p>
-            <button type="button" class="btn btn-secondary" @onclick="Save_region">Сохранить область</button>
+            <button type="button" class="btn btn-secondary" @onclick="Save_region">Сохранить область. Распознать.</button>
         </p>
     </div>
     <div class="col">
         <h4>Область показаний</h4>
         <canvas id="map_sel" width="320" height="240"></canvas>
+        <p>Распознано: @ocr_text</p>
     </div>
 </div>
 <div id="server"></div>
@@ -83,6 +88,7 @@
 }
 
 @code {
+    private string ocr_text = "";
     private string newFile = "css/img/nb-iot.jpg";
     private int loadProgress = 0;
     private List<string> All_Key_API, All_IMEI;
@@ -99,6 +105,87 @@
             File.WriteAllText(filename, text);
         }
 
+
+        if (dirInfo.Exists)
+        {
+            var last_img_file = dirInfo.GetFileSystemInfos().Where(fe => fe.Extension == ".jpg").OrderByDescending(fi => fi.CreationTime).First();
+            var OCR_fileP = Path.Combine("UsersData", Sel_Key_API, Sel_IMEI, last_img_file.Name);
+            var OCR_file = Path.Combine(Environment.CurrentDirectory, "wwwroot", OCR_fileP);
+            //text
+            if (text.Length > 4)
+            {
+                Bitmap myBitmap = new Bitmap(OCR_file);
+
+
+                var rects = text.Split(";");
+                var ocr_str = "";
+                foreach (var rect in rects)
+                {
+                    if (rect.Length > 4)
+                    {
+                        try
+                        {
+                            var rect_size = rect.Split(",");
+                            var x = Convert.ToInt32(rect_size[0]);
+                            var y = Convert.ToInt32(rect_size[1]);
+                            var dx = Convert.ToInt32(rect_size[2]);
+                            var dy = Convert.ToInt32(rect_size[3]);
+                            var rectBitmap = myBitmap.Clone(new Rectangle(x, y, dx, dy), myBitmap.PixelFormat);
+
+                            TcpClient tcpClient = new TcpClient();
+                            tcpClient.Connect("192.168.100.5", 2323);
+
+                            NetworkStream stream = tcpClient.GetStream();
+
+
+                            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+
+                            Encoder myEncoder = Encoder.Quality;
+                            EncoderParameters myEncoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
+                            EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 90L);
+                            myEncoderParameters.Param[0] = myEncoderParameter;
+
+
+                            rectBitmap.Save(stream, jpgEncoder, myEncoderParameters);
+
+                            byte[] data = new byte[16];
+                            int bytes = stream.Read(data, 0, data.Length); // получаем количество считанных байтов
+                            string message = System.Text.Encoding.UTF8.GetString(data, 0, bytes);
+                            tcpClient.Close();
+                            ocr_str += message;
+                        }
+                        catch (Exception)
+                        {
+
+
+                        }
+
+
+                    }
+                }
+                ocr_text = ocr_str;
+            }
+
+
+
+        }
+
+
+    }
+
+    private ImageCodecInfo GetEncoder(ImageFormat format)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.FormatID == format.Guid)
+            {
+                return codec;
+            }
+        }
+
+        return null;
     }
 
     private void SelKeyAPI(MouseEventArgs e, string Key_API_el)
@@ -173,17 +260,18 @@
             await js.InvokeVoidAsync("start_map_events");
         }
     }
-    private void NewFile(Guid KeyAPI, string ImagePath)
+    private void NewFile(Guid KeyAPI, ulong IMEI, string ImagePath)
     {
         this.InvokeAsync(() =>
         {
-            newFile = ImagePath.Split("wwwroot")[1].Replace('\\', '/');
-            js.InvokeVoidAsync("load_image", newFile);
+            Sel_Key_API = KeyAPI.ToString();
+            Sel_IMEI = IMEI.ToString();
+            All_Foto_Refresh();
             StateHasChanged();
 
         });
     }
-    private void onLoadProgress(Guid KeyAPI, int Progress, int All)
+    private void onLoadProgress(Guid KeyAPI, ulong IMEI, int Progress, int All)
     {
         this.InvokeAsync(() =>
         {
